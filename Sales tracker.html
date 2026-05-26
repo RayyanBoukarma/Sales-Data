@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sales">
+<meta name="theme-color" content="#2a2a2a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Sales Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:#2a2a2a;color:#e0e0e0;font-family:'Courier New',monospace;font-size:13px;min-height:100vh;padding:12px;padding-bottom:40px;}
+
+/* PROGRESS */
+.progress-section{background:#333;border:1px solid #3a3a3a;border-radius:10px;padding:16px;margin-bottom:12px;}
+.progress-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+.p-label{color:#888;font-size:9px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.p-amount{font-size:28px;font-weight:bold;color:#e0e0e0;}
+.p-sub{color:#777;font-size:10px;margin-top:3px;}
+.progress-right{text-align:right;}
+.t-label{color:#888;font-size:9px;text-transform:uppercase;letter-spacing:1px;}
+.t-val{color:#c9922a;font-size:18px;font-weight:bold;}
+.t-pct{font-size:11px;color:#777;}
+.t-rem{font-size:10px;color:#777;margin-top:2px;}
+.bar-track{background:#3d3d3d;border-radius:4px;height:5px;width:100%;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#c9922a,#f0b842);transition:width 0.4s ease;width:0%;}
+.streak-badge{display:inline-flex;align-items:center;gap:4px;background:#2e2e2e;border:1px solid #3a3a3a;border-radius:20px;padding:3px 10px;font-size:10px;color:#999;}
+.streak-badge .sn{color:#f0b842;font-weight:bold;font-size:12px;}
+
+/* TARGETS — scrollable row on mobile */
+.section-label{font-size:9px;color:#777;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;margin-top:14px;}
+.targets-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none;}
+.targets-scroll::-webkit-scrollbar{display:none;}
+.t-card{background:#333;border:1px solid #3a3a3a;border-radius:8px;padding:10px 12px;flex-shrink:0;min-width:80px;}
+.tc-label{color:#777;font-size:8px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.tc-val{font-size:17px;font-weight:bold;color:#e0e0e0;}
+.tc-val.gold{color:#c9922a;}
+.tc-sub{color:#666;font-size:8px;margin-top:2px;}
+
+/* PRIORITY */
+.priority-banner{background:#333;border:1px solid #3a3a3a;border-left:3px solid #c9922a;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:10px;line-height:1.7;color:#999;}
+.pk{color:#c9922a;font-weight:bold;}
+
+/* DATE */
+.date-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.d-label{color:#777;font-size:9px;text-transform:uppercase;letter-spacing:1.5px;}
+input[type="date"]{background:#333;border:1px solid #3a3a3a;border-radius:6px;color:#e0e0e0;padding:5px 8px;font-family:inherit;font-size:12px;cursor:pointer;}
+.date-text{font-size:16px;font-weight:bold;color:#e0e0e0;}
+
+/* SECTION HEADER */
+.section-header{font-size:9px;color:#777;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;margin-top:16px;display:flex;align-items:center;gap:8px;}
+.section-header::after{content:'';flex:1;height:1px;background:#3a3a3a;}
+
+/* WEEK GRID */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:12px;}
+.week-day{background:#333;border:1px solid #3a3a3a;border-radius:6px;padding:6px 4px;text-align:center;cursor:pointer;}
+.wd-name{font-size:7px;color:#777;text-transform:uppercase;margin-bottom:2px;}
+.wd-dials{font-size:14px;font-weight:bold;color:#555;}
+.wd-sub{font-size:7px;color:#555;margin-top:1px;}
+.week-day.wd-selected{border-color:#c9922a88;}
+.week-day.wd-hit .wd-dials{color:#4caf50;}
+.week-day.wd-miss .wd-dials{color:#e05555;}
+
+/* METRIC CARDS — 2 col on mobile */
+.metrics-grid{display:grid;gap:8px;margin-bottom:4px;}
+.cols-2m{grid-template-columns:1fr 1fr;}
+.cols-3m{grid-template-columns:1fr 1fr 1fr;}
+.m-card{background:#333;border:1px solid #3a3a3a;border-radius:8px;padding:12px;}
+.mc-label{color:#777;font-size:8px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.num-wrap{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.num-disp{font-size:24px;font-weight:bold;cursor:pointer;border-radius:4px;padding:1px 3px;transition:background 0.15s;min-width:36px;text-align:center;}
+.num-disp:active{background:#3d3d3d;}
+.num-disp.c-blue{color:#4a9eff;}
+.num-disp.c-red{color:#e05555;}
+.num-disp.c-green{color:#4caf50;}
+.num-disp.c-amber{color:#c9922a;}
+.num-inp{font-size:22px;font-weight:bold;background:#3d3d3d;border:1px solid #4a9eff;border-radius:4px;color:inherit;width:70px;padding:1px 4px;font-family:inherit;text-align:center;display:none;}
+.btn-row{display:flex;gap:4px;}
+.btn-pm{background:#2e2e2e;border:1px solid #3a3a3a;color:#888;width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all 0.1s;flex-shrink:0;touch-action:manipulation;}
+.btn-pm:active{background:#3a3a3a;color:#e0e0e0;}
+.mc-sub{color:#666;font-size:8px;margin-top:5px;}
+.conv-rate{font-size:8px;padding:2px 6px;border-radius:8px;font-weight:bold;}
+.conv-rate.good{background:#1a2e1a;color:#4caf50;}
+.conv-rate.warn{background:#3a3010;color:#c9922a;}
+.conv-rate.bad{background:#3a1a1a;color:#e05555;}
+.conv-rate.na{background:#3a3a3a;color:#666;}
+
+/* RECORDINGS */
+.recordings-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px;}
+@media(min-width:600px){.recordings-grid{grid-template-columns:1fr 1fr;}}
+.recordings-section{background:#333;border:1px solid #3a3a3a;border-radius:8px;padding:14px;}
+.recordings-section.closed-rec{border-top:2px solid #4caf50;}
+.recordings-section.set-rec{border-top:2px solid #4a9eff;}
+.recordings-title{font-size:9px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:5px;}
+.recordings-title.green{color:#4caf50;}
+.recordings-title.blue{color:#4a9eff;}
+.rec-sub{color:#666;font-size:8px;}
+.recording-item{display:flex;align-items:center;gap:7px;background:#2e2e2e;border:1px solid #3a3a3a;border-radius:6px;padding:7px 9px;margin-bottom:6px;}
+.rec-icon{font-size:12px;}
+.rec-name{flex:1;color:#aaa;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.recording-item a{color:#4a9eff;font-size:10px;text-decoration:none;white-space:nowrap;}
+.rec-del{background:none;border:none;color:#555;cursor:pointer;font-size:16px;padding:0 4px;touch-action:manipulation;}
+.rec-del:active{color:#e05555;}
+.no-recs{color:#555;font-size:10px;padding:4px 0 8px;}
+.add-rec-row{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.add-rec-row input[type="text"]{background:#2e2e2e;border:1px solid #3a3a3a;color:#e0e0e0;padding:7px 10px;border-radius:6px;font-family:inherit;font-size:12px;width:100%;}
+.add-rec-row input[type="file"]{color:#777;font-size:10px;}
+.btn-add{background:#2e2e2e;border:1px solid #3a3a3a;color:#999;padding:8px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;touch-action:manipulation;width:100%;margin-top:2px;}
+.btn-add:active{border-color:#555;color:#e0e0e0;}
+
+/* REVENUE */
+.rev-card{background:#333;border:1px solid #3a3a3a;border-radius:8px;padding:16px;}
+.rv-label{color:#777;font-size:9px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.rv-val{font-size:26px;font-weight:bold;color:#4caf50;}
+.rv-sub{color:#666;font-size:9px;margin-top:4px;}
+.cash-input-row{display:flex;gap:8px;align-items:center;margin-top:10px;}
+.cash-input-row input{background:#2e2e2e;border:1px solid #3a3a3a;color:#e0e0e0;padding:7px 10px;border-radius:6px;font-family:inherit;font-size:12px;flex:1;}
+.cash-input-row .btn-add{width:auto;margin-top:0;}
+
+/* SAVE */
+.save-row{display:flex;align-items:center;gap:10px;margin-top:14px;justify-content:flex-end;}
+.btn-save{background:#333;border:1px solid #4a9eff;color:#4a9eff;padding:10px 22px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;letter-spacing:1px;touch-action:manipulation;-webkit-appearance:none;}
+.btn-save:active{background:#4a9eff22;}
+.save-ok{color:#4caf50;font-size:11px;opacity:0;transition:opacity 0.3s;}
+
+/* HISTORY — scrollable table */
+.history-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.history-table{width:100%;border-collapse:collapse;font-size:10px;min-width:700px;}
+.history-table th{color:#777;text-transform:uppercase;letter-spacing:1px;font-size:8px;padding:7px 8px;text-align:left;border-bottom:1px solid #3a3a3a;white-space:nowrap;}
+.history-table td{padding:6px 8px;border-bottom:1px solid #323232;color:#888;white-space:nowrap;}
+.history-table tr:hover td{background:#2e2e2e;}
+.history-table td.editable{cursor:pointer;color:#aaa;}
+.history-table td input{background:#3a3a3a;border:1px solid #4a9eff;color:#e0e0e0;width:50px;padding:2px 3px;font-family:inherit;font-size:10px;border-radius:3px;text-align:center;}
+.history-table td.date-col{color:#777;font-size:9px;cursor:pointer;}
+.del-btn{background:none;border:none;color:#555;cursor:pointer;font-size:14px;padding:2px 5px;touch-action:manipulation;}
+.del-btn:active{color:#e05555;}
+.rec-indicator{font-size:9px;cursor:pointer;}
+.rec-indicator.closed{color:#4caf50;}
+.rec-indicator.set{color:#4a9eff;}
+
+/* BOTTOM BUTTONS */
+.bottom-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.btn-sm{background:#333;border:1px solid #3a3a3a;color:#888;padding:8px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:1px;touch-action:manipulation;}
+.btn-sm:active{border-color:#555;color:#e0e0e0;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:#00000099;z-index:1000;align-items:flex-end;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:#333;border:1px solid #4a4a4a;border-radius:14px 14px 0 0;padding:20px;width:100%;max-width:560px;max-height:80vh;overflow-y:auto;}
+.modal-title{font-size:13px;color:#e0e0e0;margin-bottom:4px;}
+.modal-sub{font-size:10px;color:#777;margin-bottom:14px;}
+.modal-close{float:right;background:none;border:none;color:#777;font-size:20px;cursor:pointer;touch-action:manipulation;}
+.modal-section-title{font-size:9px;text-transform:uppercase;letter-spacing:1px;margin:12px 0 7px;padding-bottom:4px;border-bottom:1px solid #3a3a3a;}
+.modal-section-title.green{color:#4caf50;}
+.modal-section-title.blue{color:#4a9eff;}
+
+/* INSTALL BANNER */
+.install-banner{background:#1a2e1a;border:1px solid #4caf5044;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:#4caf50;display:none;align-items:center;justify-content:space-between;gap:10px;}
+.install-banner.show{display:flex;}
+.btn-install{background:#4caf50;color:#000;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:bold;touch-action:manipulation;}
+</style>
+</head>
+<body>
+
+<!-- INSTALL BANNER (shown when installable) -->
+<div class="install-banner" id="install-banner">
+  <span>📱 Add to Home Screen for quick access</span>
+  <button class="btn-install" id="install-btn">Install</button>
+</div>
+
+<!-- EARNINGS + PROGRESS -->
+<div class="progress-section">
+  <div class="progress-top">
+    <div>
+      <div class="p-label">Monthly Earnings <span class="streak-badge">🔥 <span class="sn" id="streak-num">0</span></span></div>
+      <div class="p-amount" id="monthly-earn">$0</div>
+      <div class="p-sub" id="closes-sub">0 closes this month</div>
+    </div>
+    <div class="progress-right">
+      <div class="t-label">Target</div>
+      <div class="t-val">$5,000</div>
+      <div class="t-pct" id="pct-disp">0%</div>
+      <div class="t-rem" id="rem-disp">$5k remaining</div>
+    </div>
+  </div>
+  <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
+</div>
+
+<!-- MONTHLY TARGETS -->
+<div class="section-label">Monthly Targets to Hit $5k</div>
+<div class="targets-scroll">
+  <div class="t-card"><div class="tc-label">Closes</div><div class="tc-val">12</div><div class="tc-sub">@ $8,500</div></div>
+  <div class="t-card"><div class="tc-label">Shows</div><div class="tc-val">44</div><div class="tc-sub">@ 27% close</div></div>
+  <div class="t-card"><div class="tc-label">Sets</div><div class="tc-val">98</div><div class="tc-sub">@ 45% show</div></div>
+  <div class="t-card"><div class="tc-label">Convos</div><div class="tc-val">245</div><div class="tc-sub">@ 40% set</div></div>
+  <div class="t-card"><div class="tc-label">Dials</div><div class="tc-val">1,531</div><div class="tc-sub">@ 16% pickup</div></div>
+  <div class="t-card"><div class="tc-label">Dials/Day</div><div class="tc-val">70</div><div class="tc-sub">22 days</div></div>
+  <div class="t-card"><div class="tc-label">Revenue</div><div class="tc-val gold">$100k</div><div class="tc-sub">5% = $5k</div></div>
+</div>
+
+<!-- PRIORITY -->
+<div class="priority-banner">
+  <span class="pk">Priority:</span> Webinar → eBook → No-show → Instagram &nbsp;·&nbsp;
+  <span class="pk">Best pickup:</span> 10am–2pm &nbsp;·&nbsp;
+  <span class="pk">640+ credit only</span>
+</div>
+
+<!-- DATE -->
+<div class="date-row">
+  <span class="d-label">Date</span>
+  <input type="date" id="date-picker" />
+  <span class="date-text" id="date-text"></span>
+</div>
+
+<!-- WEEK -->
+<div class="section-header">This Week</div>
+<div class="week-grid" id="week-grid"></div>
+
+<!-- DIALING -->
+<div class="section-header">Dialing</div>
+<div class="metrics-grid cols-2m">
+  <div class="m-card">
+    <div class="mc-label">New Dials</div>
+    <div class="num-wrap">
+      <span class="num-disp c-blue" id="disp-dials" onclick="startEdit('dials')">0</span>
+      <input class="num-inp" id="input-dials" type="number" min="0" onblur="endEdit('dials')" onkeydown="handleKey(event,'dials')" />
+      <span class="conv-rate na" id="rate-dials">—</span>
+    </div>
+    <div class="btn-row"><button class="btn-pm" onclick="adjust('dials',-1)">−</button><button class="btn-pm" onclick="adjust('dials',1)">+</button></div>
+    <div class="mc-sub">target: 70/day</div>
+  </div>
+  <div class="m-card">
+    <div class="mc-label">Pick Ups</div>
+    <div class="num-wrap">
+      <span class="num-disp c-blue" id="disp-pickups" onclick="startEdit('pickups')">0</span>
+      <input class="num-inp" id="input-pickups" type="number" min="0" onblur="endEdit('pickups')" onkeydown="handleKey(event,'pickups')" />
+      <span class="conv-rate na" id="rate-pickups">—</span>
+    </div>
+    <div class="btn-row"><button class="btn-pm" onclick="adjust('pickups',-1)">−</button><button class="btn-pm" onclick="adjust('pickups',1)">+</button></div>
+    <div class="mc-sub">16% of dials</div>
+  </div>
+  <div class="m-card">
+    <div class="mc-label">Conversations</div>
+    <div class="num-wrap">
+      <span class="num-disp c-blue" id="disp-convos" onclick="startEdit('convos')">0</span>
+      <input class="num-inp" id="input-convos" type="number" min="0" onblur="endEdit('convos')" onkeydown="handleKey(event,'convos')" />
+      <span class="conv-rate na" id="rate-convos">—</span>
+    </div>
+    <div class="btn-row"><button class="btn-pm" onclick="adjust('convos',-1)">−</button><button class="btn-pm" onclick="adjust('convos',1)">+</button></div>
+    <div class="mc-sub">40% of pickups</div>
+  </div>
+  <div class="m-card">
+    <div class="mc-label">Hung Ups</div>
+    <div class="num-wrap">
+      <span class="num-disp c-red" id="disp-hungup" onclick="startEdit('hungup')">0</span>
+      <input class="num-inp" id="input-hungup" type="number" min="0" onblur="endEdit('hungup')" onkeydown="handleKey(event,'hungup')" />
+    </div>
+    <div class="btn-row"><button class="btn-pm" onclick="adjust('hungup',-1)">−</button><button class="btn-pm" onclick="adjust('hungup',1)">+</button></div>
+    <div class="mc-sub">of pickups</div>
+  </div>
+  <div class="m-card">
+    <div class="mc-label">DQ / Bad Fit</div>
+    <div class="num-wrap">
+      <span class="num-disp c-red" id="disp-dq" onclick="startEdit('dq')">0</span>
+      <input class="num-inp" id="input-dq" type="number" min="0" onblur="endEdit('dq')" onkeydown="handleKey(event,'dq')" />
+    </div>
+    <div class="btn-row"><button class="btn-pm" onclick="adjust('dq',-1)">−</button><button class="btn-pm" onclick="adjust('dq',1)">+</button></div>
+    <div class="mc-sub">below 640 credit</div>
+  </div>
+  <div class="m-card">
+    <div class="mc-label">Calls Booked</div>
+    <div class="num-wrap">
+      <span class="num-disp c-green" id="disp-booked" onclick="startEdit('booked')">0</span>
+      <input class="num-inp" id="input-booked" type="number" min="0" onblur="endEdit('booked')" onkeydown="handleKey(event,'booked')" />
+      <span class="conv-rate na" id="rate-booked">—</span>
+    </div>
+    <div class="btn-row"><button class="btn-pm" onclick="adjust('booked',-1)">−</button><button class="btn-pm" onclick="adjust('booked',1)">+</button></div>
+    <div class="mc-sub">40% of convos</div>
+  </div>
+</div>
+
+<!-- SCHEDULED -->
+<div class="section-header">Scheduled Calls</div>
+<div class="metrics-grid cols-2m">
+  <div class="m-card">
+    <div class="mc-label">Scheduled</div>
+    <div class="num-wrap">
+      <span class="num-disp c-amber" id="disp-sched" onclick="startEdit('sched')">0</span>
+      <input class="num-inp" id="input-sched" type="number" min="0" onblur="endEdit('sched')" onkeydown="handleKey(event,'sched')" />
+    </div>
+    <div class="btn-row"><button class="btn-pm" onclick="adjust('sched',-1)">−</button><button class="btn-pm" onclick="adjust('sched',1)">+</button></div>
+    <div class="mc-sub">total on calendar</div>
+  </div>
+  <div class="m-card">
+    <div class="mc-label">Shown</div>
+    <div class="num-wrap">
+      <span class="num-disp c-green" id="disp-shown" onclick="startEdit('shown')">0</span>
+      <input class="num-inp" id="input-shown" type="number" min="0" onblur="endEdit('shown')" onkeydown="handleKey(event,'shown')" />
+      <span class="conv-rate na" id="rate-shown">—</span>
+    </div>
+    <div class="btn-row"><button class="btn-pm" onclick="adjust('shown',-1)">−</button><button class="btn-pm" onclick="adjust('shown',1)">+</button></div>
+    <div class="mc-sub">45% of sched</div>
+  </div>
+  <div class="m-card">
+    <div class="mc-label">Rescheduled</div>
+    <div class="num-wrap">
+      <span class="num-disp c-blue" id="disp-resched" onclick="startEdit('resched')">0</span>
+      <input class="num-inp" id="input-resched" type="number" min="0" onblur="endEdit('resched')" onkeydown="handleKey(event,'resched')" />
+    </div>
+    <div class="btn-row"><button class="btn-pm" onclick="adjust('resched',-1)">−</button><button class="btn-pm" onclick="adjust('resched',1)">+</button></div>
+    <div class="mc-sub">of scheduled</div>
+  </div>
+  <div class="m-card">
+    <div class="mc-label">No Show</div>
+    <div class="num-wrap">
+      <span class="num-disp c-red" id="disp-noshow" onclick="startEdit('noshow')">0</span>
+      <input class="num-inp" id="input-noshow" type="number" min="0" onblur="endEdit('noshow')" onkeydown="handleKey(event,'noshow')" />
+    </div>
+    <div class="btn-row"><button class="btn-pm" onclick="adjust('noshow',-1)">−</button><button class="btn-pm" onclick="adjust('noshow',1)">+</button></div>
+    <div class="mc-sub">55% avg rate</div>
+  </div>
+  <div class="m-card" style="grid-column:span 2;">
+    <div class="mc-label">Closed Deals</div>
+    <div class="num-wrap">
+      <span class="num-disp c-green" id="disp-closed" onclick="startEdit('closed')">0</span>
+      <input class="num-inp" id="input-closed" type="number" min="0" onblur="endEdit('closed')" onkeydown="handleKey(event,'closed')" />
+      <span class="conv-rate na" id="rate-closed">—</span>
+    </div>
+    <div class="btn-row"><button class="btn-pm" onclick="adjust('closed',-1)">−</button><button class="btn-pm" onclick="adjust('closed',1)">+</button></div>
+    <div class="mc-sub">target: 27% of shows</div>
+  </div>
+</div>
+
+<!-- RECORDINGS -->
+<div class="section-header">Call Recordings — <span id="rec-date-label" style="color:#e0e0e0;font-size:10px;text-transform:none;letter-spacing:0;"></span></div>
+<div class="recordings-grid">
+  <div class="recordings-section closed-rec">
+    <div class="recordings-title green">✅ Closed Sets <span class="rec-sub">(won)</span></div>
+    <div id="closed-recs-list"></div>
+    <div class="add-rec-row">
+      <input type="text" id="closed-rec-name" placeholder="Prospect name" />
+      <input type="text" id="closed-rec-link" placeholder="Link (Drive / Loom / URL)" />
+      <input type="file" id="closed-rec-file" accept="audio/*,video/*" />
+      <button class="btn-add" onclick="addRecording('closed')">+ Add Recording</button>
+    </div>
+  </div>
+  <div class="recordings-section set-rec">
+    <div class="recordings-title blue">❌ Not Closed Sets <span class="rec-sub">(lost)</span></div>
+    <div id="set-recs-list"></div>
+    <div class="add-rec-row">
+      <input type="text" id="set-rec-name" placeholder="Prospect name" />
+      <input type="text" id="set-rec-link" placeholder="Link (Drive / Loom / URL)" />
+      <input type="file" id="set-rec-file" accept="audio/*,video/*" />
+      <button class="btn-add" onclick="addRecording('set')">+ Add Recording</button>
+    </div>
+  </div>
+</div>
+
+<!-- REVENUE -->
+<div class="section-header">Revenue</div>
+<div class="metrics-grid cols-2m">
+  <div class="rev-card">
+    <div class="rv-label">Cash Collected</div>
+    <div class="rv-val" id="cash-disp">$0</div>
+    <div class="rv-sub">+$426 per close</div>
+    <div class="cash-input-row">
+      <input type="number" id="cash-inp" placeholder="e.g. 8500" />
+      <button class="btn-add" onclick="addCash()">+ Add</button>
+    </div>
+  </div>
+  <div class="rev-card">
+    <div class="rv-label">Revenue Generated</div>
+    <div class="rv-val" id="rev-disp">$0</div>
+    <div class="rv-sub">5% of cash collected</div>
+  </div>
+</div>
+
+<!-- SAVE -->
+<div class="save-row">
+  <span class="save-ok" id="save-ok">✓ Saved</span>
+  <button class="btn-save" onclick="saveDay()">SAVE DAY →</button>
+</div>
+
+<!-- HISTORY -->
+<div class="section-header" style="margin-top:24px;">History</div>
+<div class="history-wrap">
+  <table class="history-table">
+    <thead>
+      <tr>
+        <th>Date</th><th>Dials</th><th>PU</th><th>Conv</th>
+        <th>HU</th><th>DQ</th><th>Bkd</th><th>Sch</th>
+        <th>Shwn</th><th>Rsch</th><th>NS</th><th>Clsd</th>
+        <th>Cash</th><th>Comm</th><th>Rec</th><th>Notes</th><th></th>
+      </tr>
+    </thead>
+    <tbody id="hist-body"></tbody>
+  </table>
+</div>
+<div class="bottom-row">
+  <button class="btn-sm" onclick="addBlankRow()">+ Add row</button>
+  <button class="btn-sm" onclick="exportCSV()">↓ CSV</button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="rec-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-title" id="modal-title">Call Recordings</div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div id="modal-recs"></div>
+  </div>
+</div>
+
+<script>
+// PWA install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('install-banner').classList.add('show');
+});
+document.getElementById('install-btn').addEventListener('click',async()=>{
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  const{outcome}=await deferredPrompt.userChoice;
+  deferredPrompt=null;
+  document.getElementById('install-banner').classList.remove('show');
+});
+
+// Service Worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+const FIELDS=['dials','pickups','convos','hungup','dq','booked','sched','shown','resched','noshow','closed'];
+const state={};FIELDS.forEach(f=>state[f]=0);
+let cashCollected=0;
+let history=JSON.parse(localStorage.getItem('sd_history')||'[]');
+let recordings=JSON.parse(localStorage.getItem('sd_recordings2')||'{}');
+
+const pad=n=>String(n).padStart(2,'0');
+const toStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const toDisp=d=>{
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
+};
+
+const datePicker=document.getElementById('date-picker');
+const today=new Date();
+datePicker.value=toStr(today);
+document.getElementById('date-text').textContent=toDisp(today);
+document.getElementById('rec-date-label').textContent=toDisp(today);
+
+datePicker.addEventListener('change',()=>{
+  const d=new Date(datePicker.value+'T12:00:00');
+  document.getElementById('date-text').textContent=toDisp(d);
+  document.getElementById('rec-date-label').textContent=toDisp(d);
+  loadDay(datePicker.value);renderWeek();renderRecordings();
+});
+
+function loadDay(ds){
+  const r=history.find(x=>x.date===ds);
+  FIELDS.forEach(f=>{state[f]=r?(r[f]||0):0;document.getElementById('disp-'+f).textContent=state[f];});
+  cashCollected=r?(r.cash||0):0;updateCash();updateRates();
+}
+
+function startEdit(f){
+  document.getElementById('disp-'+f).style.display='none';
+  const inp=document.getElementById('input-'+f);inp.style.display='inline-block';inp.value=state[f];inp.focus();inp.select();
+}
+function endEdit(f){
+  const inp=document.getElementById('input-'+f);
+  state[f]=Math.max(0,parseInt(inp.value)||0);
+  document.getElementById('disp-'+f).textContent=state[f];
+  document.getElementById('disp-'+f).style.display='inline-block';
+  inp.style.display='none';updateRates();updateMonthly();
+}
+function handleKey(e,f){
+  if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();endEdit(f);}
+  if(e.key==='Escape'){document.getElementById('disp-'+f).style.display='inline-block';document.getElementById('input-'+f).style.display='none';}
+}
+function adjust(f,d){state[f]=Math.max(0,state[f]+d);document.getElementById('disp-'+f).textContent=state[f];updateRates();updateMonthly();}
+
+function setRate(id,cls,txt){const el=document.getElementById('rate-'+id);if(!el)return;el.className='conv-rate '+cls;el.textContent=txt;}
+function rateCls(v,t){return v>=t?'good':v>=t*0.7?'warn':'bad';}
+function updateRates(){
+  const{dials,pickups,convos,booked,sched,shown,closed}=state;
+  if(dials>0)setRate('dials',rateCls(Math.round(dials/70*100),100),Math.round(dials/70*100)+'%');else setRate('dials','na','—');
+  if(dials>0)setRate('pickups',rateCls(Math.round(pickups/dials*100),16),Math.round(pickups/dials*100)+'%');else setRate('pickups','na','—');
+  if(pickups>0)setRate('convos',rateCls(Math.round(convos/pickups*100),40),Math.round(convos/pickups*100)+'%');else setRate('convos','na','—');
+  if(convos>0)setRate('booked',rateCls(Math.round(booked/convos*100),40),Math.round(booked/convos*100)+'%');else setRate('booked','na','—');
+  if(sched>0)setRate('shown',rateCls(Math.round(shown/sched*100),45),Math.round(shown/sched*100)+'%');else setRate('shown','na','—');
+  if(shown>0)setRate('closed',rateCls(Math.round(closed/shown*100),27),Math.round(closed/shown*100)+'%');else setRate('closed','na','—');
+}
+
+function addCash(){const v=parseFloat(document.getElementById('cash-inp').value)||0;if(v>0){cashCollected+=v;document.getElementById('cash-inp').value='';updateCash();updateMonthly();}}
+function updateCash(){document.getElementById('cash-disp').textContent='$'+cashCollected.toLocaleString();document.getElementById('rev-disp').textContent='$'+Math.round(cashCollected*0.05).toLocaleString();}
+
+function updateMonthly(){
+  const tc=history.reduce((s,r)=>s+(r.closed||0),0)+state.closed;
+  const comm=tc*426;const pct=Math.min(100,Math.round(comm/5000*100));
+  document.getElementById('monthly-earn').textContent='$'+comm.toLocaleString();
+  document.getElementById('closes-sub').textContent=tc+' closes this month';
+  document.getElementById('pct-disp').textContent=pct+'%';
+  document.getElementById('rem-disp').textContent='$'+Math.max(0,5000-comm).toLocaleString()+' remaining';
+  document.getElementById('bar-fill').style.width=pct+'%';
+  updateStreak();
+}
+function updateStreak(){
+  let s=0;const sorted=[...history].sort((a,b)=>b.date.localeCompare(a.date));
+  for(const r of sorted){if((r.dials||0)>=70)s++;else break;}
+  document.getElementById('streak-num').textContent=s;
+}
+
+function getRecs(ds){if(!recordings[ds])recordings[ds]={closed:[],set:[]};return recordings[ds];}
+function saveRec(){localStorage.setItem('sd_recordings2',JSON.stringify(recordings));}
+
+function addRecording(type){
+  const name=document.getElementById(type+'-rec-name').value.trim()||'Unnamed';
+  const link=document.getElementById(type+'-rec-link').value.trim();
+  const file=document.getElementById(type+'-rec-file').files[0];
+  const ds=datePicker.value;const recs=getRecs(ds);
+  if(link){recs[type].push({name,type:'link',url:link});saveRec();}
+  if(file){
+    const reader=new FileReader();
+    reader.onload=e=>{recs[type].push({name,type:'file',url:e.target.result,filename:file.name});saveRec();renderRecordings();renderHistory();};
+    reader.readAsDataURL(file);
+  } else{renderRecordings();renderHistory();}
+  document.getElementById(type+'-rec-name').value='';
+  document.getElementById(type+'-rec-link').value='';
+  document.getElementById(type+'-rec-file').value='';
+}
+function deleteRec(ds,type,i){getRecs(ds)[type].splice(i,1);saveRec();renderRecordings();renderHistory();}
+
+function renderRecList(cid,ds,type){
+  const list=document.getElementById(cid);list.innerHTML='';
+  const recs=getRecs(ds)[type];
+  if(!recs.length){list.innerHTML='<div class="no-recs">No recordings yet.</div>';return;}
+  recs.forEach((r,i)=>{
+    const div=document.createElement('div');div.className='recording-item';
+    div.innerHTML=`<span class="rec-icon">${r.type==='file'?'🎵':'🔗'}</span>
+      <span class="rec-name">${r.name}</span>
+      <a href="${r.url}" target="_blank">${r.type==='file'?r.filename:'Open'}</a>
+      <button class="rec-del" onclick="deleteRec('${ds}','${type}',${i})">×</button>`;
+    list.appendChild(div);
+  });
+}
+function renderRecordings(){
+  const ds=datePicker.value;
+  renderRecList('closed-recs-list',ds,'closed');
+  renderRecList('set-recs-list',ds,'set');
+}
+
+function openRecModal(ds){
+  const d=new Date(ds+'T12:00:00');
+  document.getElementById('modal-title').textContent='Recordings';
+  document.getElementById('modal-sub').textContent=toDisp(d);
+  const box=document.getElementById('modal-recs');box.innerHTML='';
+  const recs=getRecs(ds);
+  const ch=document.createElement('div');ch.className='modal-section-title green';ch.textContent='✅ Closed Sets';box.appendChild(ch);
+  if(!recs.closed.length)box.innerHTML+='<div style="color:#666;font-size:11px;margin-bottom:8px;">None.</div>';
+  else recs.closed.forEach(r=>{box.innerHTML+=`<div class="recording-item"><span class="rec-icon">${r.type==='file'?'🎵':'🔗'}</span><span class="rec-name">${r.name}</span><a href="${r.url}" target="_blank">${r.type==='file'?r.filename:'Open'}</a></div>`;});
+  const sh=document.createElement('div');sh.className='modal-section-title blue';sh.textContent='❌ Not Closed Sets';box.appendChild(sh);
+  if(!recs.set.length)box.innerHTML+='<div style="color:#666;font-size:11px;">None.</div>';
+  else recs.set.forEach(r=>{box.innerHTML+=`<div class="recording-item"><span class="rec-icon">${r.type==='file'?'🎵':'🔗'}</span><span class="rec-name">${r.name}</span><a href="${r.url}" target="_blank">${r.type==='file'?r.filename:'Open'}</a></div>`;});
+  document.getElementById('rec-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('rec-modal').classList.remove('open');}
+
+function renderWeek(){
+  const grid=document.getElementById('week-grid');grid.innerHTML='';
+  const d=new Date(datePicker.value+'T12:00:00');
+  const dow=d.getDay();const monday=new Date(d);monday.setDate(d.getDate()-(dow===0?6:dow-1));
+  ['M','T','W','T','F','S','S'].forEach((name,i)=>{
+    const day=new Date(monday);day.setDate(monday.getDate()+i);
+    const ds=toStr(day);const rec=history.find(r=>r.date===ds);const dials=rec?(rec.dials||0):0;
+    const div=document.createElement('div');
+    let cls='week-day';if(ds===datePicker.value)cls+=' wd-selected';if(dials>=70)cls+=' wd-hit';else if(dials>0)cls+=' wd-miss';
+    div.className=cls;div.onclick=()=>{datePicker.value=ds;datePicker.dispatchEvent(new Event('change'));};
+    div.innerHTML=`<div class="wd-name">${name}</div><div class="wd-dials">${dials||'—'}</div><div class="wd-sub">${dials>0?Math.round(dials/70*100)+'%':''}</div>`;
+    grid.appendChild(div);
+  });
+}
+
+function saveDay(){
+  const ds=datePicker.value;
+  const entry={date:ds,...state,cash:cashCollected,commission:state.closed*426};
+  const idx=history.findIndex(r=>r.date===ds);
+  if(idx>=0)history[idx]=entry;else history.push(entry);
+  history.sort((a,b)=>b.date.localeCompare(a.date));
+  localStorage.setItem('sd_history',JSON.stringify(history));
+  renderHistory();updateMonthly();renderWeek();
+  const fb=document.getElementById('save-ok');fb.style.opacity='1';setTimeout(()=>fb.style.opacity='0',2000);
+}
+
+function renderHistory(){
+  const tbody=document.getElementById('hist-body');tbody.innerHTML='';
+  history.forEach((row,idx)=>{
+    const tr=document.createElement('tr');
+    const dtd=document.createElement('td');dtd.className='date-col editable';
+    dtd.textContent=new Date(row.date+'T12:00:00').toLocaleDateString('de-DE');
+    dtd.onclick=()=>{datePicker.value=row.date;datePicker.dispatchEvent(new Event('change'));};
+    tr.appendChild(dtd);
+    ['dials','pickups','convos','hungup','dq','booked','sched','shown','resched','noshow','closed'].forEach(col=>{
+      const td=document.createElement('td');td.className='editable';td.textContent=row[col]!==undefined?row[col]:'-';
+      td.onclick=()=>inlineEdit(td,idx,col);tr.appendChild(td);
+    });
+    const ctd=document.createElement('td');ctd.className='editable';ctd.textContent=row.cash>0?'$'+row.cash.toLocaleString():'-';ctd.onclick=()=>inlineEdit(ctd,idx,'cash');tr.appendChild(ctd);
+    const comtd=document.createElement('td');comtd.textContent=row.commission>0?'$'+row.commission.toLocaleString():'-';comtd.style.color='#4caf50';tr.appendChild(comtd);
+    const rtd=document.createElement('td');const recs=getRecs(row.date);
+    let rh='';if(recs.closed.length)rh+=`<span class="rec-indicator closed" onclick="openRecModal('${row.date}')">✅${recs.closed.length}</span> `;
+    if(recs.set.length)rh+=`<span class="rec-indicator set" onclick="openRecModal('${row.date}')">❌${recs.set.length}</span>`;
+    if(!recs.closed.length&&!recs.set.length)rh='<span style="color:#555">—</span>';
+    rtd.innerHTML=rh;tr.appendChild(rtd);
+    const ntd=document.createElement('td');ntd.className='editable';ntd.textContent=row.notes||'-';ntd.onclick=()=>inlineEditText(ntd,idx,'notes');tr.appendChild(ntd);
+    const deltd=document.createElement('td');const btn=document.createElement('button');btn.className='del-btn';btn.textContent='×';
+    btn.onclick=()=>{if(confirm('Delete?')){history.splice(idx,1);localStorage.setItem('sd_history',JSON.stringify(history));renderHistory();updateMonthly();renderWeek();}};
+    deltd.appendChild(btn);tr.appendChild(deltd);tbody.appendChild(tr);
+  });
+}
+
+function inlineEdit(td,idx,col){
+  if(td.querySelector('input'))return;
+  const inp=document.createElement('input');inp.type='number';inp.value=history[idx][col]||0;inp.min='0';
+  td.textContent='';td.appendChild(inp);inp.focus();inp.select();
+  const save=()=>{const v=parseFloat(inp.value)||0;history[idx][col]=v;if(col==='closed')history[idx].commission=v*426;localStorage.setItem('sd_history',JSON.stringify(history));renderHistory();updateMonthly();};
+  inp.onblur=save;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();save();}if(e.key==='Escape')renderHistory();};
+}
+function inlineEditText(td,idx,col){
+  if(td.querySelector('input'))return;
+  const inp=document.createElement('input');inp.type='text';inp.value=history[idx][col]||'';inp.style.width='100px';
+  td.textContent='';td.appendChild(inp);inp.focus();
+  const save=()=>{history[idx][col]=inp.value;localStorage.setItem('sd_history',JSON.stringify(history));renderHistory();};
+  inp.onblur=save;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();save();}};
+}
+
+function addBlankRow(){
+  const ds=datePicker.value;
+  if(!history.find(r=>r.date===ds)){
+    history.push({date:ds,dials:0,pickups:0,convos:0,hungup:0,dq:0,booked:0,sched:0,shown:0,resched:0,noshow:0,closed:0,cash:0,commission:0,notes:''});
+    history.sort((a,b)=>b.date.localeCompare(a.date));
+    localStorage.setItem('sd_history',JSON.stringify(history));renderHistory();
+  }
+}
+function exportCSV(){
+  const h=['Date','Dials','Pickups','Convos','HungUp','DQ','Booked','Sched','Shown','Resched','NoShow','Closed','Cash','Commission','Notes'];
+  const rows=history.map(r=>[r.date,r.dials,r.pickups,r.convos,r.hungup,r.dq,r.booked,r.sched,r.shown,r.resched,r.noshow,r.closed,r.cash,r.commission,r.notes||''].join(','));
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...rows].join('\n'));a.download='sales.csv';a.click();
+}
+
+loadDay(datePicker.value);renderHistory();updateMonthly();renderWeek();renderRecordings();
+</script>
+</body>
+</html>
